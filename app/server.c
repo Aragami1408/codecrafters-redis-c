@@ -71,7 +71,7 @@ int main() {
 	printf("received from client: %s\n", received_buffer);
 
 	int bytes_sent;
-	if (strcmp(received_buffer, "PING") == 0) {
+	if (strcmp(received_buffer, "*1\r\n$4\r\nPING\r\n") == 0) {
 		char response[] = "+PONG\r\n";
 		bytes_sent = send(client_fd, response, strlen(response), 0);
 	}
