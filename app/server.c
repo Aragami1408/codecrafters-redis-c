@@ -9,9 +9,6 @@
 #include <pthread.h>
 #include <strings.h>
 
-#define STB_DS_IMPLEMENTATION
-#include "stb_ds.h"
-
 #define BUFFER_SIZE 1024
 
 typedef struct
