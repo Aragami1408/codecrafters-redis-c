@@ -96,28 +96,25 @@ void *connection_handler(void *fd)
 	// Get the socket descriptor
 	int client_fd = *(int *)fd;
 
-	char buffer[BUFFER_SIZE];
-	int bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
-	if (bytes_received == -1)
-	{
-		printf("Receive failed: %s\n", strerror(errno));
-		return 1;
+	char client_message[BUFFER_SIZE];
+	int bytes_received;
+	while ((bytes_received = recv(client_fd, client_message, BUFFER_SIZE, 0)) > 0) {
+		client_message[bytes_received] = '\0';
+
+		const char *response = "+PONG\r\n";
+		int bytes_sent = send(client_fd, response, strlen(response), 0);
 	}
+
 	if (bytes_received == 0)
 	{
 		printf("Client disconnected\n");
-		//return 1;
+		fflush(stdout);
 	}
-	buffer[bytes_received] = '\0';
-	printf("Buffer Received: %s\n", buffer);
-
-	const char *response = "+PONG\r\n";
-	int bytes_sent = send(client_fd, response, strlen(response), 0);
-	if (bytes_sent < 0)
+	else if (bytes_received == -1)
 	{
-		printf("Send failed: %s\n", strerror(errno));
-		return 1;
+		printf("Receive failed: %s\n", strerror(errno));
 	}
+
 
 	return 0;
 }
