@@ -106,7 +106,7 @@ void *connection_handler(void *fd)
 	if (bytes_received == 0)
 	{
 		printf("Client disconnected\n");
-		return 1;
+		//return 1;
 	}
 	buffer[bytes_received] = '\0';
 	printf("Buffer Received: %s\n", buffer);
