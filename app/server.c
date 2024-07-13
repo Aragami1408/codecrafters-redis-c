@@ -9,9 +9,25 @@
 #include <pthread.h>
 #include <strings.h>
 
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
+
 #define BUFFER_SIZE 1024
 
-// the thread function
+typedef struct
+{
+	char key[128];
+	char value[128];
+} field;
+
+typedef struct {
+	field *bucket[10000];
+	size_t map_size;
+} map;
+
+static map global_map;
+
+// the thread callback
 void *connection_handler(void *);
 
 // RESP parsing function
@@ -26,8 +42,10 @@ int main()
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	printf("Logs from your program will appear here!\n");
 
-	// Uncomment this block to pass the first stage
-	//
+	// Setup default values for hash table
+	// hmput(hash, "foo", "bar");
+	// hmput(hash, "baz", "qux");
+
 	int server_fd, client_addr_len;
 	struct sockaddr_in client_addr;
 
@@ -102,15 +120,14 @@ void *connection_handler(void *fd)
 
 	char client_message[BUFFER_SIZE];
 	int bytes_received;
-	while ((bytes_received = recv(client_fd, client_message, BUFFER_SIZE, 0)) > 0) {
+	while ((bytes_received = recv(client_fd, client_message, BUFFER_SIZE, 0)) > 0)
+	{
 		client_message[bytes_received] = '\0';
-
 		printf("%s\n", client_message);
 
 		char response[100];
-
 		parse_resp(client_message, bytes_received, response);
-		
+
 		int bytes_sent = send(client_fd, response, strlen(response), 0);
 	}
 
@@ -124,24 +141,23 @@ void *connection_handler(void *fd)
 		printf("Receive failed: %s\n", strerror(errno));
 	}
 
-
 	return 0;
 }
 
-void parse_resp(char *message, size_t length, char *output) {
+void parse_resp(char *message, size_t length, char *output)
+{
 #define COMMAND_MAX_LENGTH 15
 
-	int array_len = (int) strtok(message, "\r\n")[1] - '0';
-	printf("array length: %d\n", array_len);
+	int array_len = (int)strtok(message, "\r\n")[1] - '0';
 
-	char commands[array_len+1][COMMAND_MAX_LENGTH];
+	char commands[array_len + 1][COMMAND_MAX_LENGTH];
 
-	for (int i = 0; i < array_len; i++) {
-		int command_length = (int) strtok(0, "\r\n")[1] - '0';	
+	for (int i = 0; i < array_len; i++)
+	{
+		int command_length = (int)strtok(0, "\r\n")[1] - '0';
 		strncpy(commands[i], strtok(0, "\r\n"), command_length);
 		commands[i][command_length] = '\0';
 	}
-
 
 	if (strcasecmp(commands[0], "PING") == 0)
 	{
@@ -149,16 +165,50 @@ void parse_resp(char *message, size_t length, char *output) {
 	}
 	else if (strcasecmp(commands[0], "ECHO") == 0)
 	{
-		char *result = (char*)malloc(100 * sizeof(char));
-		printf("string to echo: %s\n", commands[1]);
-		printf("length: %zu\n", strlen(commands[1]));
+		char *result = (char *)malloc(100 * sizeof(char));
 		snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(commands[1]), commands[1]);
-		strcpy(output,result);
+		strcpy(output, result);
 		free(result);
+	}
+	else if (strcasecmp(commands[0], "SET") == 0)
+	{
+		field *f = (field *)malloc(sizeof(field));	
+		
+		strcpy(f->key, commands[1]);
+		strcpy(f->value, commands[2]);
+
+		global_map.bucket[global_map.map_size++] = f;
+		strcpy(output, "+OK\r\n");
+		free(f);
+	}
+	else if (strcasecmp(commands[0], "GET") == 0)
+	{
+		field *f = (field *)malloc(sizeof(field));
+		char *key = commands[1];
+		for (int i = 0; i < global_map.map_size; i++) {
+			if (strcmp(global_map.bucket[i]->key, key) == 0) {
+				f = global_map.bucket[i];
+				break;
+			}
+		}
+
+		if (f->value != NULL)
+		{
+			char *value = f->value;
+			char *result = (char *)malloc(100 * sizeof(char));
+			snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(value), value);
+			strcpy(output, result);
+			free(result);
+		}
+		else
+		{
+			strcpy(output, "$-1\r\n");
+		}
+		free(f);
 	}
 	else
 	{
-		strcpy(output,"-SYNTAX ERROR\r\n");
+		strcpy(output, "-SYNTAX ERROR\r\n");
 	}
 
 #undef COMMAND_LENGTH
