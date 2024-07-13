@@ -53,9 +53,35 @@ int main() {
 	printf("Waiting for a client to connect...\n");
 	client_addr_len = sizeof(client_addr);
 	
-	accept(server_fd, (struct sockaddr *) &client_addr, &client_addr_len);
+	int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, &client_addr_len);
+	if (client_fd < 0) {
+		printf("Accept failed: %s\n", strerror(errno));
+		return 1;
+	}
 	printf("Client connected\n");
-	
+
+	char received_buffer[1024];
+
+	int bytes_received = recv(client_fd, received_buffer, 1024, 0);
+	if (bytes_received < 0) {
+		printf("Receive failed: %s\n", strerror(errno));
+		return 1;
+	}
+
+	printf("received from client: %s\n", received_buffer);
+
+	int bytes_sent;
+	if (strcmp(received_buffer, "PING") == 0) {
+		char response[] = "+PONG\r\n";
+		bytes_sent = send(client_fd, response, strlen(response), 0);
+	}
+
+	if (bytes_sent < 0)
+	{
+		printf("Send failed: %s\n", strerror(errno));
+		return 1;
+	}
+
 	close(server_fd);
 
 	return 0;
