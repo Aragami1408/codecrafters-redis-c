@@ -7,11 +7,15 @@
 #include <errno.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <strings.h>
 
 #define BUFFER_SIZE 1024
 
 // the thread function
 void *connection_handler(void *);
+
+// RESP parsing function
+void parse_resp(char *message, size_t length, char *output);
 
 int main()
 {
@@ -101,7 +105,12 @@ void *connection_handler(void *fd)
 	while ((bytes_received = recv(client_fd, client_message, BUFFER_SIZE, 0)) > 0) {
 		client_message[bytes_received] = '\0';
 
-		const char *response = "+PONG\r\n";
+		printf("%s\n", client_message);
+
+		char response[100];
+
+		parse_resp(client_message, bytes_received, response);
+		
 		int bytes_sent = send(client_fd, response, strlen(response), 0);
 	}
 
@@ -117,4 +126,40 @@ void *connection_handler(void *fd)
 
 
 	return 0;
+}
+
+void parse_resp(char *message, size_t length, char *output) {
+#define COMMAND_MAX_LENGTH 15
+
+	int array_len = (int) strtok(message, "\r\n")[1] - '0';
+	printf("array length: %d\n", array_len);
+
+	char commands[array_len+1][COMMAND_MAX_LENGTH];
+
+	for (int i = 0; i < array_len; i++) {
+		int command_length = (int) strtok(0, "\r\n")[1] - '0';	
+		strncpy(commands[i], strtok(0, "\r\n"), command_length);
+		commands[i][command_length] = '\0';
+	}
+
+
+	if (strcasecmp(commands[0], "PING") == 0)
+	{
+		strcpy(output, "+PONG\r\n");
+	}
+	else if (strcasecmp(commands[0], "ECHO") == 0)
+	{
+		char *result = (char*)malloc(100 * sizeof(char));
+		printf("string to echo: %s\n", commands[1]);
+		printf("length: %zu\n", strlen(commands[1]));
+		snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(commands[1]), commands[1]);
+		strcpy(output,result);
+		free(result);
+	}
+	else
+	{
+		strcpy(output,"-SYNTAX ERROR\r\n");
+	}
+
+#undef COMMAND_LENGTH
 }
