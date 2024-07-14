@@ -62,6 +62,7 @@ void parse_resp(char *message, size_t length, char *output)
 			return;
 		}
 
+ 
 		global_map.bucket[global_map.map_size++] = f;
 		strcpy(output, "+OK\r\n");
 	}
@@ -84,7 +85,6 @@ void parse_resp(char *message, size_t length, char *output)
 			uint64_t expiry_time = f->expiry_time;
 
 			if (expiry_time != 0) {
-				printf("The key %s will expire at %zu milliseconds\n", key, expiry_time);
 				time_since_get_command = get_current_time();
 				if ((time_since_get_command - time_since_set_command) < expiry_time) {	
 					snprintf(output, BUFFER_SIZE, "$%zu\r\n%s\r\n", strlen(f->value), f->value);
@@ -94,7 +94,6 @@ void parse_resp(char *message, size_t length, char *output)
 				}
 			}
 			else {
-				printf("The key %s never expire\n", key);
 				snprintf(output, BUFFER_SIZE, "$%zu\r\n%s\r\n", strlen(f->value), f->value);
 			}
 		}
