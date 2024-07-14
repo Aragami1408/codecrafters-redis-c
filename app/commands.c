@@ -12,14 +12,22 @@ uint64_t time_since_get_command = 0;
 
 void parse_resp(char *message, size_t length, char *output)
 {
+	char current_line[COMMAND_MAX_LENGTH] = "";
+	char *first_command = strtok(message, "\r\n");
+	strslice(first_command, current_line, 1, strlen(first_command));	
 
-	int array_len = (int)strtok(message, "\r\n")[1] - '0';
-	char commands[array_len + 1][COMMAND_MAX_LENGTH];
+	int array_len = atoi(current_line);
 
+	char commands[array_len + 2][COMMAND_MAX_LENGTH + 2];
+
+	printf("commands list: \n");
 	for (int i = 0; i < array_len; i++) {
-		int command_length = (int)strtok(NULL, "\r\n")[1] - '0';
+		char *next_command = strtok(NULL, "\r\n");
+		strslice(next_command, current_line, 1, strlen(next_command));
+		int command_length = atoi(current_line);
 		strncpy(commands[i], strtok(NULL, "\r\n"), command_length);
 		commands[i][command_length] = '\0';
+		printf("\t%s\n", commands[i]);
 	}
 
 	if (strcasecmp(commands[0], "PING") == 0)
@@ -101,6 +109,21 @@ void parse_resp(char *message, size_t length, char *output)
 		{
 			strcpy(output, "$-1\r\n");
 		}
+	}
+	else if (strcasecmp(commands[0], "INFO") == 0) {
+		if (commands[1] != NULL) {
+			if (strcasecmp(commands[1], "replication") == 0) {
+				char *message = "$11\r\nrole:master\r\n";
+				strncpy(output, message, strlen(message));
+			}
+			else {	
+				strcpy(output, "-SYNTAXERROR unknown info\r\n");
+			}
+		}
+		else {
+			strcpy(output, "-SYNTAXERROR expect 1 argument\r\n");
+		}
+		
 	}
 	else
 	{

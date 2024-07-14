@@ -8,5 +8,6 @@
 #define BUCKET_SIZE 10000
 
 uint64_t get_current_time();
+void strslice(const char* str, char* result, size_t start, size_t end);
 
 #endif
