@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 	if (argc == 1)
 		port_number = 6379;
 	else if (argc == 3) {
-		if (strcmp(argv[1], "--port") == 0) {
+		if (strcmp(argv[1], "--port") == 0 || strcmp(argv[1], "-p") == 0) {
 			char *endptr;
 			port_number = strtol(argv[2], &endptr, 10);
 			if (endptr == argv[2] || *endptr != '\0') {
