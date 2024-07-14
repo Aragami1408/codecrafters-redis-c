@@ -8,6 +8,11 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <strings.h>
+#include <sys/time.h>
+#include <time.h>
+#include <inttypes.h>
+#include <stdint.h>
+#include <math.h>
 
 #define BUFFER_SIZE 1024
 
@@ -15,6 +20,8 @@ typedef struct
 {
 	char key[128];
 	char value[128];
+	uint64_t is_expired; // either 1 or 0
+	uint64_t expiry_time;
 } field;
 
 typedef struct {
@@ -24,11 +31,17 @@ typedef struct {
 
 static map global_map;
 
+static uint64_t time_since_set_command = 0;
+static uint64_t time_since_get_command = 0;
+
 // the thread callback
 void *connection_handler(void *);
 
 // RESP parsing function
 void parse_resp(char *message, size_t length, char *output);
+
+// Get current time in milliseconds
+uint64_t get_current_time();
 
 int main()
 {
@@ -162,17 +175,38 @@ void parse_resp(char *message, size_t length, char *output)
 	}
 	else if (strcasecmp(commands[0], "ECHO") == 0)
 	{
-		char *result = (char *)malloc(100 * sizeof(char));
-		snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(commands[1]), commands[1]);
-		strcpy(output, result);
-		free(result);
+		if (commands[1] != NULL) {
+			char *result = (char *)malloc(100 * sizeof(char));
+			snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(commands[1]), commands[1]);
+			strcpy(output, result);
+			free(result);
+		}
+		else {
+			strcpy(output, "-SYNTAXERROR No parameter supplied for 'ECHO' command\r\n");
+		}
 	}
 	else if (strcasecmp(commands[0], "SET") == 0)
 	{
 		field *f = (field *)malloc(sizeof(field));	
-		
-		strcpy(f->key, commands[1]);
-		strcpy(f->value, commands[2]);
+		f->is_expired = 0;	
+		if (array_len == 3) {
+			strcpy(f->key, commands[1]);
+			strcpy(f->value, commands[2]);
+		}
+		else if (array_len == 5) {
+			strcpy(f->key, commands[1]);
+			strcpy(f->value, commands[2]);
+			if (strcasecmp(commands[3], "px") == 0) {
+				f->expiry_time = atoi(commands[4]);	
+				time_since_set_command = get_current_time();
+			}
+			else {
+				strcpy(output, "-SYNTAXERROR Wrong format for 'SET' command\r\n");
+			}
+		}
+		else {
+			strcpy(output, "-SYNTAXERROR Insufficient parameters for 'SET' command\r\n");
+		}
 
 		global_map.bucket[global_map.map_size++] = f;
 		strcpy(output, "+OK\r\n");
@@ -192,9 +226,26 @@ void parse_resp(char *message, size_t length, char *output)
 		if (f->value != NULL)
 		{
 			char *value = f->value;
+			uint64_t expiry_time = f->expiry_time;
 			char *result = (char *)malloc(100 * sizeof(char));
-			snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(value), value);
-			strcpy(output, result);
+
+			if (expiry_time != 0) {
+				printf("The key %s will expire at %zu milliseconds\n", key, expiry_time);
+				time_since_get_command = get_current_time();
+				if ((time_since_get_command - time_since_set_command) < expiry_time) {	
+					snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(value), value);
+					strcpy(output, result);
+				}
+				else {
+					strcpy(output, "$-1\r\n");
+				}
+			}
+			else {
+				printf("The key %s never expire\n", key);
+				snprintf(result, 99, "$%zu\r\n%s\r\n", strlen(value), value);
+				strcpy(output, result);
+			}
+
 			free(result);
 		}
 		else
@@ -205,8 +256,21 @@ void parse_resp(char *message, size_t length, char *output)
 	}
 	else
 	{
-		strcpy(output, "-SYNTAX ERROR\r\n");
+		strcpy(output, "-SYNTAXERROR unknown command\r\n");
 	}
 
 #undef COMMAND_LENGTH
+}
+
+uint64_t get_current_time() {
+	uint64_t ms;
+	time_t s;
+	struct timespec spec;
+
+	clock_gettime(CLOCK_REALTIME, &spec);
+
+	s = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6);
+
+	return ms;
 }
