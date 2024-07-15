@@ -1,4 +1,5 @@
 #include "server.h"
+#include "arguments.h"
 
 typedef struct {
 	char key[128];
@@ -15,6 +16,15 @@ static map global_map = {.map_size = 0};
 static uint64_t time_since_set_command = 0;
 static uint64_t time_since_get_command = 0;
 
+struct argp_option options[] = {
+	{"replicaof",   'r', "REPLICAOF", 0,  "replica of master (default: \"\")" },
+	{"port",	 'p', "PORT",			0,  "master port (default: 6379)" },
+	{ 0 }
+};
+
+struct argp argp = {options, parse_opt, "", ""};
+struct arguments args;
+
 int main(int argc, char *argv[]) {
 	// Disable output buffering
 	setbuf(stdout, NULL);
@@ -23,7 +33,7 @@ int main(int argc, char *argv[]) {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	printf("Logs from your program will appear here!\n");
 
-	int server_fd, client_fd, client_addr_len, port_number;
+	int server_fd, client_fd, client_addr_len;
 	struct sockaddr_in client_addr;
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd == -1) {
@@ -39,31 +49,37 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (argc == 1)
-		port_number = 6379;
-	else if (argc == 3) {
-		if (strcmp(argv[1], "--port") == 0 || strcmp(argv[1], "-p") == 0) {
-			char *endptr;
-			port_number = strtol(argv[2], &endptr, 10);
-			if (endptr == argv[2] || *endptr != '\0') {
-				printf("Invalid port name\n");
-				printf("Usage: %s [--port <port number>]", argv[0]);
-				return 1;
-			}
-		}	
-		else {
-			printf("Usage: %s [--port <port number>]", argv[0]);
-			return 1;
-		}
-	}
-	else {
-		printf("Usage: %s [--port <port number>]", argv[0]);
-		return 1;
-	}
+
+	args.port = 6379;
+	argp_parse(&argp, argc, argv, 0, 0, &args);
+
+	printf("server's port: %d\nreplica: %s\n", args.port, (args.replicaof != NULL) ? args.replicaof : "no");
+
+	// if (argc == 1)
+	// 	port_number = 6379;
+	// else if (argc == 3) {
+	// 	if (strcmp(argv[1], "--port") == 0 || strcmp(argv[1], "-p") == 0) {
+	// 		char *endptr;
+	// 		port_number = strtol(argv[2], &endptr, 10);
+	// 		if (endptr == argv[2] || *endptr != '\0') {
+	// 			printf("Invalid port name\n");
+	// 			printf("Usage: %s [--port <port number>]", argv[0]);
+	// 			return 1;
+	// 		}
+	// 	}	
+	// 	else {
+	// 		printf("Usage: %s [--port <port number>]", argv[0]);
+	// 		return 1;
+	// 	}
+	// }
+	// else {
+	// 	printf("Usage: %s [--port <port number>]", argv[0]);
+	// 	return 1;
+	// }
 
 	struct sockaddr_in serv_addr = {
 		.sin_family = AF_INET,
-		.sin_port = htons(port_number),
+		.sin_port = htons(args.port),
 		.sin_addr = {htonl(INADDR_ANY)},
 	};
 

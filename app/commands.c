@@ -5,6 +5,7 @@
 #include "commands.h"
 #include "utils.h"
 #include "map.h"
+#include "arguments.h"
 
 map global_map = {.map_size = 0};
 uint64_t time_since_set_command = 0;
@@ -113,8 +114,14 @@ void parse_resp(char *message, size_t length, char *output)
 	else if (strcasecmp(commands[0], "INFO") == 0) {
 		if (commands[1] != NULL) {
 			if (strcasecmp(commands[1], "replication") == 0) {
-				char *message = "$11\r\nrole:master\r\n";
-				strncpy(output, message, strlen(message));
+				if (args.replicaof != NULL) {
+					char *message = "$10\r\nrole:slave\r\n";
+					strncpy(output, message, strlen(message));
+				}
+				else {
+					char *message = "$11\r\nrole:master\r\n";
+					strncpy(output, message, strlen(message));
+				}
 			}
 			else {	
 				strcpy(output, "-SYNTAXERROR unknown info\r\n");
