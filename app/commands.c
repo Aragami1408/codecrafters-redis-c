@@ -5,7 +5,7 @@
 #include "commands.h"
 #include "utils.h"
 #include "map.h"
-#include "arguments.h"
+#include "options.h"
 
 map global_map = {.map_size = 0};
 uint64_t time_since_set_command = 0;
@@ -114,7 +114,7 @@ void parse_resp(char *message, size_t length, char *output)
 	else if (strcasecmp(commands[0], "INFO") == 0) {
 		if (commands[1] != NULL) {
 			if (strcasecmp(commands[1], "replication") == 0) {
-				if (args.replicaof != NULL) {
+				if (strcmp(serv_opts.replicaof, "") != 0) {
 					char *message = "$10\r\nrole:slave\r\n";
 					strncpy(output, message, strlen(message));
 				}

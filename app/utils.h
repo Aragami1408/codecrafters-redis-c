@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #define BUFFER_SIZE 1024
 #define COMMAND_MAX_LENGTH 200

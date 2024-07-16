@@ -1,5 +1,5 @@
 #include "server.h"
-#include "arguments.h"
+#include "options.h"
 
 typedef struct {
 	char key[128];
@@ -16,14 +16,7 @@ static map global_map = {.map_size = 0};
 static uint64_t time_since_set_command = 0;
 static uint64_t time_since_get_command = 0;
 
-struct argp_option options[] = {
-	{"replicaof",   'r', "REPLICAOF", 0,  "replica of master (default: \"\")" },
-	{"port",	 'p', "PORT",			0,  "master port (default: 6379)" },
-	{ 0 }
-};
-
-struct argp argp = {options, parse_opt, "", ""};
-struct arguments args;
+struct server_options serv_opts;
 
 int main(int argc, char *argv[]) {
 	// Disable output buffering
@@ -49,37 +42,55 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	serv_opts.port = 6379;
+	strcpy(serv_opts.replicaof, "");
 
-	args.port = 6379;
-	argp_parse(&argp, argc, argv, 0, 0, &args);
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "--port") == 0) {
+			if (i+1 < argc) {
+				char *endptr;
+				serv_opts.port = strtol(argv[i+1], &endptr, 10);
+				if (endptr == argv[i+1]|| *endptr != '\0') {
+					printf("Invalid port number: %s\n", argv[i + 1]);
+					print_usage(argv[0]);
+					return 1;
+				}
+				i++;
+			}
+			else {
+				printf("Option --port requires an argument\n");
+				print_usage(argv[0]);
+				return 1;
+			}
+		}
+		else if (strcmp(argv[i], "--replicaof") == 0) {
+			if (i+1 < argc) {
+				strcpy(serv_opts.replicaof, argv[i+1]);
+				i++;	
+			}
+			else {
+				printf("Option --replicaof requires an argument\n");
+				print_usage(argv[0]);
+				return 1;
+			}
+		}
+		else if (strcmp(argv[i], "--help") == 0) {
+			print_usage(argv[0]);
+			return 0;
+		}
+		else {
+			printf("Unknown option: %s\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
+		}
+	}
 
-	printf("server's port: %d\nreplica: %s\n", args.port, (args.replicaof != NULL) ? args.replicaof : "no");
-
-	// if (argc == 1)
-	// 	port_number = 6379;
-	// else if (argc == 3) {
-	// 	if (strcmp(argv[1], "--port") == 0 || strcmp(argv[1], "-p") == 0) {
-	// 		char *endptr;
-	// 		port_number = strtol(argv[2], &endptr, 10);
-	// 		if (endptr == argv[2] || *endptr != '\0') {
-	// 			printf("Invalid port name\n");
-	// 			printf("Usage: %s [--port <port number>]", argv[0]);
-	// 			return 1;
-	// 		}
-	// 	}	
-	// 	else {
-	// 		printf("Usage: %s [--port <port number>]", argv[0]);
-	// 		return 1;
-	// 	}
-	// }
-	// else {
-	// 	printf("Usage: %s [--port <port number>]", argv[0]);
-	// 	return 1;
-	// }
+	printf("server's port number: %d\n", serv_opts.port);
+	printf("server's replica: %s\n", (strcmp(serv_opts.replicaof, "") != 0) ? serv_opts.replicaof : "no");
 
 	struct sockaddr_in serv_addr = {
 		.sin_family = AF_INET,
-		.sin_port = htons(args.port),
+		.sin_port = htons(serv_opts.port),
 		.sin_addr = {htonl(INADDR_ANY)},
 	};
 
@@ -117,4 +128,3 @@ int main(int argc, char *argv[]) {
 	close(server_fd);
 	return 0;
 }
-
