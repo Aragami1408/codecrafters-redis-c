@@ -11,6 +11,8 @@ map global_map = {.map_size = 0};
 uint64_t time_since_set_command = 0;
 uint64_t time_since_get_command = 0;
 
+static void __get_bulk_string(char *message, size_t message_len);
+
 void parse_resp(char *message, size_t length, char *output)
 {
 	char current_line[COMMAND_MAX_LENGTH] = "";
@@ -114,14 +116,21 @@ void parse_resp(char *message, size_t length, char *output)
 	else if (strcasecmp(commands[0], "INFO") == 0) {
 		if (commands[1] != NULL) {
 			if (strcasecmp(commands[1], "replication") == 0) {
-				if (strcmp(serv_opts.replicaof, "") != 0) {
-					char *message = "$10\r\nrole:slave\r\n";
-					strncpy(output, message, strlen(message));
-				}
-				else {
-					char *message = "$11\r\nrole:master\r\n";
-					strncpy(output, message, strlen(message));
-				}
+				char repl_info[256];
+
+				size_t repl_info_len = snprintf(
+					repl_info,
+					256,
+					"role:%s\r\nmaster_replid:%s\r\nmaster_repl_offset:%d\r\n",
+					(strcmp(serv_opts.replicaof, "") == 0) ? "master" : "slave", 
+					serv_opts.replid, 
+					serv_opts.repl_offset
+				);
+
+				__get_bulk_string(repl_info, repl_info_len);
+				printf("repl info: \n%s\n", repl_info);
+				//strncpy(output, repl_info, repl_info_len);
+				snprintf(output, repl_info_len+100, "%s\r\n\r\n", repl_info);
 			}
 			else {	
 				strcpy(output, "-SYNTAXERROR unknown info\r\n");
@@ -136,4 +145,10 @@ void parse_resp(char *message, size_t length, char *output)
 	{
 		strcpy(output, "-SYNTAXERROR unknown command\r\n");
 	}
+}
+
+static void __get_bulk_string(char *message, size_t message_len) {
+	char len[20];
+	snprintf(len, 20, "$%ld\r\n", message_len);
+	strprepend(message, len);
 }

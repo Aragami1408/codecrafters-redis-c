@@ -10,5 +10,6 @@
 
 uint64_t get_current_time();
 void strslice(const char* str, char* result, size_t start, size_t end);
+void strprepend(char *s, const char *t);
 
 #endif

@@ -42,8 +42,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	// default value for server options
 	serv_opts.port = 6379;
 	strcpy(serv_opts.replicaof, "");
+	strcpy(serv_opts.replid, "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb");
+	serv_opts.repl_offset = 0;
 
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--port") == 0) {

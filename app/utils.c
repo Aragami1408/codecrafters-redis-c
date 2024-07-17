@@ -12,3 +12,9 @@ uint64_t get_current_time() {
 void strslice(const char* str, char* result, size_t start, size_t end) {
     strncpy(result, str + start, end - start);
 }
+
+void strprepend(char *s, const char *t) {
+    size_t len = strlen(t);
+    memmove(s+len, s, strlen(s) + 1);
+    memcpy(s, t, len);
+}

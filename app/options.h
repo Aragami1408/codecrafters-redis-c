@@ -5,7 +5,10 @@
 
 struct server_options {
     int port;
+    // replication
     char replicaof[BUFFER_SIZE];
+    char replid[BUFFER_SIZE];
+    int repl_offset;
 };
 
 extern struct server_options serv_opts;

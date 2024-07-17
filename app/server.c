@@ -18,7 +18,7 @@ void *connection_handler(void *fd)
 		client_message[bytes_received] = '\0';
 		printf("%s\n", client_message);
 
-		char response[100];
+		char response[BUFFER_SIZE];
 		parse_resp(client_message, bytes_received, response);
 
 		send(client_fd, response, strlen(response), 0);
