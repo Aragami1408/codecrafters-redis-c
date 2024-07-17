@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-void parse_arguments(struct server_options *serv_opts, int argc, char **argv) {
+void parse_arguments(struct server_info *serv_opts, int argc, char **argv) {
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--port") == 0) {
 			if (i+1 < argc) {

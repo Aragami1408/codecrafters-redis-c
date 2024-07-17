@@ -122,9 +122,9 @@ void parse_resp(char *message, size_t length, char *output)
 					repl_info,
 					256,
 					"role:%s\r\nmaster_replid:%s\r\nmaster_repl_offset:%d\r\n",
-					(strcmp(serv_opts.replicaof, "") == 0) ? "master" : "slave", 
-					serv_opts.replid, 
-					serv_opts.repl_offset
+					(strcmp(serv_info.replicaof, "") == 0) ? "master" : "slave", 
+					serv_info.replid, 
+					serv_info.repl_offset
 				);
 
 				__get_bulk_string(repl_info, repl_info_len);

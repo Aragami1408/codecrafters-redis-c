@@ -2,21 +2,12 @@
 #define OPTIONS_H
 
 #include "utils.h"
+#include "server.h"
 
-struct server_options {
-    int port;
-    // replication
-    char replicaof[BUFFER_SIZE];
-    char replid[BUFFER_SIZE];
-    int repl_offset;
-    // master server info
-    char master_host[BUFFER_SIZE];
-    int master_port;
-};
 
-extern struct server_options serv_opts;
+extern struct server_info serv_info;
 
-void parse_arguments(struct server_options *serv_opts, int argc, char **argv);
+void parse_arguments(struct server_info *serv_info, int argc, char **argv);
 void print_usage(const char *program_name);
 
 #endif

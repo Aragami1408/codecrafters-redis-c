@@ -19,7 +19,7 @@ static map global_map = {.map_size = 0};
 static uint64_t time_since_set_command = 0;
 static uint64_t time_since_get_command = 0;
 
-struct server_options serv_opts;
+struct server_info serv_info;
 
 int main(int argc, char *argv[]) {
 	// Disable output buffering
@@ -30,21 +30,21 @@ int main(int argc, char *argv[]) {
 	printf("Logs from your program will appear here!\n");
 
 	// default value for server options
-	serv_opts.port = 6379;
-	strcpy(serv_opts.replicaof, "");
-	strcpy(serv_opts.replid, "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb");
-	serv_opts.repl_offset = 0;
-	strcpy(serv_opts.master_host, "");
-	serv_opts.master_port = 0;
+	serv_info.port = 6379;
+	strcpy(serv_info.replicaof, "");
+	strcpy(serv_info.replid, "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb");
+	serv_info.repl_offset = 0;
+	strcpy(serv_info.master_host, "");
+	serv_info.master_port = 0;
 
-	parse_arguments(&serv_opts, argc, argv);
+	parse_arguments(&serv_info, argc, argv);
 
-	printf("server's port number: %d\n", serv_opts.port);
-	printf("server's replica: %s\n\n", (strcmp(serv_opts.replicaof, "") != 0) ? serv_opts.replicaof : "no");
-	printf("master server's host: %s\n", serv_opts.master_host);
-	printf("master server's port: %d\n", serv_opts.master_port);
+	printf("server's port number: %d\n", serv_info.port);
+	printf("server's replica: %s\n\n", (strcmp(serv_info.replicaof, "") != 0) ? serv_info.replicaof : "no");
+	printf("master server's host: %s\n", serv_info.master_host);
+	printf("master server's port: %d\n", serv_info.master_port);
 
-	if (strlen(serv_opts.master_host) != 0 && serv_opts.master_port != 0) {
+	if (strlen(serv_info.master_host) != 0 && serv_info.master_port != 0) {
 		int master_fd;
 		struct sockaddr_in master_serv_addr;
 		struct hostent *master_serv;
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 
-		master_serv = gethostbyname(serv_opts.master_host);
+		master_serv = gethostbyname(serv_info.master_host);
 		if (master_serv == NULL) {
 			fprintf(stderr, "ERROR, no such host\n");
 			return 1;	
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 		master_serv_addr.sin_family = AF_INET;
 
 		bcopy((char *) master_serv->h_addr, (char *)&master_serv_addr.sin_addr.s_addr, master_serv->h_length);
-		master_serv_addr.sin_port = htons(serv_opts.master_port);
+		master_serv_addr.sin_port = htons(serv_info.master_port);
 		
 		if (connect(master_fd, (struct sockaddr *)&master_serv_addr, sizeof(master_serv_addr)) < 0) {
 			printf("ERROR Failed to connect to master\n");
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
 
 	struct sockaddr_in serv_addr = {
 		.sin_family = AF_INET,
-		.sin_port = htons(serv_opts.port),
+		.sin_port = htons(serv_info.port),
 		.sin_addr = {htonl(INADDR_ANY)},
 	};
 

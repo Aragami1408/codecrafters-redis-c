@@ -18,6 +18,17 @@
 #include <math.h>
 #include "utils.h"
 
+struct server_info {
+    int port;
+    // replication
+    char replicaof[BUFFER_SIZE];
+    char replid[BUFFER_SIZE];
+    int repl_offset;
+    // master server info
+    char master_host[BUFFER_SIZE];
+    int master_port;
+};
+
 void *connection_handler(void *fd);
 
 #endif
